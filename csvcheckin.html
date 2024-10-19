@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Dosyası ile TC Kimlik Doğrulama</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        #file-input {
+            margin: 10px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+
+        .valid {
+            background-color: lightgreen;
+            color: green;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        .invalid {
+            background-color: lightcoral;
+            color: red;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            animation: blink 1s linear infinite;
+        }
+
+        .empty {
+            background-color: lightblue;
+            color: blue;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .error-table {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+        }
+
+        .error-table th, .error-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .error-table th {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .error-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .error-table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        #status {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>CSV Dosyasını Yükleyin ve TC Kimlik Numaralarını Kontrol Edin</h1>
+    <div style="text-align: center;">
+        <input type="file" id="file-input" accept=".csv" />
+        <button onclick="validateTC()">Doğrula</button>
+    </div>
+
+    <div id="result"></div>
+    <div id="status"></div>
+    <div id="error-table"></div>
+
+    <script>
+        function validateTC() {
+            const fileInput = document.getElementById('file-input');
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const errorTable = document.getElementById('error-table');
+            
+            if (!fileInput.files.length) {
+                statusDiv.innerHTML = "<p>Lütfen bir CSV dosyası yükleyin.</p>";
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const data = event.target.result;
+                const rows = data.split("\n").map(row => row.split(","));
+
+                resultDiv.innerHTML = ""; 
+                errorTable.innerHTML = "<h3>Hatalı TC Kimlik Numaraları</h3>";
+                let hasError = false;
+                let rowIndex = 1;
+                let errorRows = [];
+
+                rows.forEach((row, index) => {
+                    const tc = row[0].trim(); 
+
+                    const rowDiv = document.createElement("div");
+                    rowDiv.classList.add('row');
+                
+                    if (!tc) {
+                        rowDiv.classList.add('empty');
+                        rowDiv.textContent = `Satır ${rowIndex}: (Boş)`;
+                    } else if (tc.length === 11 && /^\d+$/.test(tc)) {
+                        rowDiv.classList.add('valid');
+                        rowDiv.textContent = `Satır ${rowIndex}: ${tc} (Geçerli)`;
+                    } else {
+                        rowDiv.classList.add('invalid');
+                        rowDiv.textContent = `Satır ${rowIndex}: ${tc} (Hatalı, ${tc.length} haneli)`;
+                        hasError = true;
+                        errorRows.push({ index: rowIndex, message: 'Hatalı' });
+                    }
+
+                    resultDiv.appendChild(rowDiv);
+                    rowIndex++; 
+                });
+
+                if (hasError) {
+                    statusDiv.innerHTML = "<p class='error'>Bazı TC Kimlik Numaraları geçersiz veya hatalı!</p>";
+                } else {
+                    statusDiv.innerHTML = "<p class='success'>Tüm TC Kimlik Numaraları geçerli!</p>";
+                }
+
+                if (errorRows.length > 0) {
+                    let tableContent = '<table class="error-table"><thead><tr><th>İndis</th><th>Durum</th></tr></thead><tbody>';
+                    errorRows.forEach(row => {
+                        tableContent += `<tr><td>${row.index}</td><td>${row.message}</td></tr>`;
+                    });
+                    tableContent += '</tbody></table>';
+                    errorTable.innerHTML += tableContent;
+                } else {
+                    errorTable.innerHTML = "<p>Tüm TC Kimlik Numaraları geçerli!</p>";
+                }
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
